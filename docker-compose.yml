@@ -1,0 +1,69 @@
+version: '3.3'
+
+services:
+    # server api laravel
+    takumi-laravel:
+        build:
+            context: .
+            dockerfile: ./Dockerfile
+            args:
+                - ENV=development
+        restart: unless-stopped
+        container_name: takumi-laravel
+        ports:
+            - 8069:80
+        volumes:
+            - ./:/app
+            - ./docker/default.conf:/etc/apache2/sites-enabled/000-default.conf:ro
+        depends_on:
+            - takumi-db
+        networks:
+            - takumi-network
+    # server database laravel
+    takumi-db:
+        image: mariadb
+        container_name: takumi-db
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: takumi
+            MYSQL_DATABASE: takumi
+            MYSQL_USER: takumi
+            MYSQL_PASSWORD: takumi
+        volumes:
+            - ./docker/db:/var/lib/mysql
+        ports:
+            - 33062:3306
+        networks:
+            - takumi-network
+    # server database laravel
+    takumi-pma:
+        depends_on:
+            - takumi-db
+        image: phpmyadmin/phpmyadmin
+        container_name: takumi-pma
+        restart: unless-stopped
+        ports:
+            - 8070:80
+        environment:
+            PMA_HOST: takumi-db
+            MYSQL_ROOT_PASSWORD: takumi
+        networks:
+            - takumi-network
+
+    takumi-redis:
+        image: "redis:alpine"
+        container_name: takumi-redis
+        environment:
+            # ALLOW_EMPTY_PASSWORD is recommended only for development.
+            - ALLOW_EMPTY_PASSWORD=yes
+            - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+        ports:
+            - 6380:6379
+        volumes:
+            - './docker/redis:/bitnami/redis/data'
+        networks:
+            - takumi-network
+
+networks:
+    takumi-network:
+        driver: bridge

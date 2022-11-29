@@ -1,0 +1,278 @@
+<?php
+
+/**
+ * Global helpers file with misc functions.
+ */
+if (! function_exists('app_name')) {
+    /**
+     * Helper to grab the application name.
+     *
+     * @return mixed
+     */
+    function app_name()
+    {
+        return config('app.name');
+    }
+}
+
+if (! function_exists('access')) {
+    /**
+     * Access (lol) the Access:: facade as a simple function.
+     */
+    function access()
+    {
+        return app('access');
+    }
+}
+
+if (! function_exists('history')) {
+    /**
+     * Access the history facade anywhere.
+     */
+    function history()
+    {
+        return app('history');
+    }
+}
+
+if (! function_exists('gravatar')) {
+    /**
+     * Access the gravatar helper.
+     */
+    function gravatar()
+    {
+        return app('gravatar');
+    }
+}
+
+if (! function_exists('ld')) {
+    /**
+     * Generate HTML icon
+     */
+    function ld($variable)
+    {
+        dd($variable);
+    }
+}
+
+if (! function_exists('word_limiter')) {
+    /**
+     * @param $str
+     * @param $limit
+     *
+     * @return string
+     */
+    function word_limiter($str, $limit)
+    {
+        return \Illuminate\Support\Str::words($str, $limit);
+    }
+}
+
+if (! function_exists('formatBytes')) {
+    /**
+     * Format bytes to kb, mb, gb, tb
+     *
+     * @param  integer $size
+     * @param  integer $precision
+     * @return integer
+     */
+    function formatBytes($size, $precision = 2)
+    {
+        if ($size > 0) {
+            $size = (int)$size;
+            $base = log($size) / log(1024);
+            $suffixes = array(' bytes', ' KB', ' MB', ' GB', ' TB');
+
+            return round(pow(1024, $base - floor($base)), $precision) . $suffixes[floor($base)];
+        } else {
+            return $size;
+        }
+    }
+}
+
+if (! function_exists('getAllQueryString')) {
+    /**
+     * @param $except
+     * @return string
+     */
+    function getAllQueryString($except = null)
+    {
+        $query_strings = \Illuminate\Support\Facades\Request::query();
+        if ($except && key_exists($except, $query_strings)) {
+            unset($query_strings[$except]);
+        }
+
+        return $query_strings ? http_build_query($query_strings) : null;
+    }
+}
+
+if (! function_exists('combineQueryString')) {
+    /**
+     * @param $arr_combine
+     * @return null|string
+     */
+    function combineQueryString($arr_combine, $subtract = null)
+    {
+        $query_strings = \Illuminate\Support\Facades\Request::query();
+        $merged_arr = array_merge($query_strings, $arr_combine);
+
+        if (is_array($subtract)) {
+            foreach($subtract as $key) {
+                if (key_exists($key, $merged_arr)) {
+                    unset($merged_arr[$key]);
+                }
+            }
+        } else {
+            if (key_exists($subtract, $merged_arr)) {
+                unset($merged_arr[$subtract]);
+            }
+        }
+
+        return $merged_arr ? http_build_query($merged_arr) : null;
+    }
+}
+
+if (! function_exists('printTextShowing')) {
+    /**
+     * Set default text for form control
+     *
+     * @param $data
+     * @return string
+     */
+    function printTextShowing($data)
+    {
+        if ($data->total()) {
+            return trans('labels.general.data_showing', ['number' => $data->firstItem().'-'.$data->lastItem(), 'total' => $data->total()]);
+        } elseif ($data->count()) {
+            return trans('labels.general.data_showing', ['number' => $data->count(), 'total' => $data->count()]);
+        } else {
+            return 'Không có dữ liệu nào được hiển thị.';
+        }
+    }
+}
+
+if (! function_exists('getListYears')) {
+    /**
+     * @param string $choose
+     * @return array
+     */
+    function getListYears($choose = 'Chọn năm')
+    {
+        $arr_year = ['' => $choose];
+        for ($i = intval(date('Y')); $i >= 1970; $i--) {
+            $arr_year[$i] = $i;
+        }
+
+        return $arr_year;
+    }
+}
+
+if (! function_exists('getListMonths')) {
+    /**
+     * @param string $choose
+     * @return array
+     */
+    function getListMonths($choose = 'Chọn tháng')
+    {
+        $arr_month = ['' => $choose];
+        for ($i = 1; $i <= 12; $i++) {
+            $arr_month[$i] = $i;
+        }
+
+        return $arr_month;
+    }
+}
+
+if (! function_exists('includeRouteFiles')) {
+
+    /**
+     * Loops through a folder and requires all PHP files
+     * Searches sub-directories as well.
+     *
+     * @param $folder
+     */
+    function includeRouteFiles($folder)
+    {
+        try {
+            $rdi = new recursiveDirectoryIterator($folder);
+            $it = new recursiveIteratorIterator($rdi);
+
+            while ($it->valid()) {
+                if (! $it->isDot() && $it->isFile() && $it->isReadable() && $it->current()->getExtension() === 'php') {
+                    require $it->key();
+                }
+
+                $it->next();
+            }
+        } catch (Exception $e) {
+            echo $e->getMessage();
+        }
+    }
+}
+
+if (! function_exists('getRtlCss')) {
+
+    /**
+     * The path being passed is generated by Laravel Mix manifest file
+     * The webpack plugin takes the css filenames and appends rtl before the .css extension
+     * So we take the original and place that in and send back the path.
+     *
+     * @param $path
+     *
+     * @return string
+     */
+    function getRtlCss($path)
+    {
+        $path = explode('/', $path);
+        $filename = end($path);
+        array_pop($path);
+        $filename = rtrim($filename, '.css');
+
+        return implode('/', $path).'/'.$filename.'.rtl.css';
+    }
+}
+
+if (! function_exists('homeRoute')) {
+
+    /**
+     * Return the route to the "home" page depending on authentication/authorization status.
+     *
+     * @return string
+     */
+    function homeRoute()
+    {
+        if (access()->allow('view-backend')) {
+            return 'admin.dashboard';
+        } elseif (access()->hasRole('employer')) {
+            return 'frontend.recruitment.ticket.index';
+        } elseif (auth()->check()) {
+            return 'frontend.user.dashboard';
+        }
+
+        return 'frontend.index';
+    }
+}
+
+if (! function_exists('toSlug')) {
+
+    /**
+    * convert string to slug
+    *
+    * @return string
+    */
+    function toSlug($str)
+    {
+        $str = trim(mb_strtolower($str));
+        $str = str_replace(array('à', 'á', 'ạ', 'ả', 'ã', 'â', 'ầ', 'ấ', 'ậ', 'ẩ', 'ẫ', 'ă', 'ằ', 'ắ', 'ặ', 'ẳ', 'ẵ'), 'a', $str);
+        $str = str_replace(array('è', 'é', 'ẹ', 'ẻ', 'ẽ', 'ê', 'ề', 'ế', 'ệ', 'ể', 'ễ'), 'e', $str);
+        $str = str_replace(array('ì', 'í', 'ị', 'ỉ', 'ĩ'), 'i', $str);
+        $str = str_replace(array('ò', 'ó', 'ọ', 'ỏ', 'õ', 'ô', 'ồ', 'ố', 'ộ', 'ổ', 'ỗ', 'ơ', 'ờ', 'ớ', 'ợ', 'ở', 'ỡ'), 'o', $str);
+        $str = str_replace(array('ù', 'ú', 'ụ', 'ủ', 'ũ', 'ư', 'ừ', 'ứ', 'ự', 'ử', 'ữ'), 'u', $str);
+        $str = str_replace(array('ỳ', 'ý', 'ỵ', 'ỷ', 'ỹ'), 'y', $str);
+        $str = str_replace(array('đ'), 'd', $str);
+        $str = str_replace(array(' ', '&', '\r', '\n'), '-', $str);
+        $str = str_replace(array('-----', '----', '---', '--'), '-', $str);
+
+        return $str;
+    }
+}
