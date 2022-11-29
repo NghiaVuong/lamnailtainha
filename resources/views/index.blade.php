@@ -1,6 +1,6 @@
 @extends('layouts.default')
 
-@section('title', 'Trang chủ - ' . app_name())
+@section('title', 'Trang chủ1 - ' . app_name())
 
 @section('section')
     <section id="hero">
